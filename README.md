@@ -1,5 +1,5 @@
 # Soccer Passing Analysis
-Analysis of XG value of different passes and player's cumulative XG based on their passes and decision making.
+Analysis of xG value of different passes and player's cumulative xG based on their passes and decision making.
 
 * Note *
 This was a project created for an application. It was done under a tight time constraint, so many things were simplified.

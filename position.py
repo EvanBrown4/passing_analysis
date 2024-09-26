@@ -8,7 +8,7 @@ from scipy import stats
 general = pd.read_json(r'general_stats.json')
 train = pd.read_json(r'passing_data.json')
 
-#getting the set of players who have played in each positions (players can be in multiple sets)
+# Getting the set of players who have played in each positions (players can be in multiple sets)
 gset = set([])
 cbset = set([])
 obset = set([])
@@ -40,7 +40,7 @@ def player(event):
 
 train.apply(player, axis = 1)
 
-#adding each player to their position's list and to a list of all players to set up dataframes
+# Adding each player to their position's list and to a list of all players to set up dataframes
 gdx = []
 cbx = []
 obx = []
@@ -84,7 +84,7 @@ for player in fset:
     if player not in all:
         all.append((player, 0, 0))
 
-#Building the positional dataframes, using the lists built above for the rows
+# Building the positional dataframes, using the lists built above for the rows
 df_g = pd.DataFrame(gdx, columns = ['name', 'successes', 'total_attempts'])
 df_cb = pd.DataFrame(cbx, columns = ['name', 'successes', 'total_attempts'])
 df_ob = pd.DataFrame(obx, columns = ['name', 'successes', 'total_attempts'])
@@ -103,53 +103,52 @@ am = dd(dict)
 w = dd(dict)
 f = dd(dict)
 
+# Sort each player's xg by each type of pass.
+# Store in a dictionary.
 def gen_sort(df, event, pos):
     name = event['player']
     index = df.loc[df['name'] == name].index[0]
     id = event['val']
-    # gen_index = general.loc[general['id'] == id].index[0]
-    # successes = general.at[gen_index, 'successes']
-    # total = general.at[gen_index, 'total_attempts']
-    #Adding each player's passing events to their stats in their position's dataframe
+    # Adding each player's passing events to their stats in their position's dataframe
     complete = df.at[index, 'successes']
     all = df.at[index, 'total_attempts']
     df.at[index, 'successes'] = complete + event['success']
     df.at[index, 'total_attempts'] = all + 1
-    #storing each player's stats, separated by each type of pass, in a dictionary to help find each player's xg
+    # Storing each player's stats, separated by each type of pass, in a dictionary to help find each player's xg
     if id in pos[name]:
         pos[name][id] = (pos[name][id][0] + event['success'], pos[name][id][1] + 1)
     else:
         pos[name][id] = (event['success'], 1)
 
+# Find each player's xg
 def xg(name, pos):
-    #finding each player's xg
     if name in pos:
         count = 0
         xg = 0
         for id in pos[name]:
-            #collecting the xg data for each type of pass
+            # Collecting the xg data for each type of pass
             gen_index = general.loc[general['id'] == id].index[0]
             xga = general.at[gen_index, 'xga']
             xgf = general.at[gen_index, 'xgf']
-            #finding the success rate of each type of pass for each individual player
+            # Finding the success rate of each type of pass for each individual player
             complete = pos[name][id][0]/pos[name][id][1]
             missed = 1 - complete
             count += 1
-            #weighting the player's xg based off of their success rate for each type of pass (acting as a risk assessment for each pass
-            #since a higher success rate leads to a higher xg)
-            #Since the data from the general dataframe was the xg per pass for each type of pass, all we need to do is weight the xgf
-            #and xga and put them together to find each player's xg per pass for each type of pass
-            #We then add the xgs for all passses made by each player and average them to find each player's average xg across all passes
-            #The reason we do this is because if a player is more successful with one type of pass, it is a better decision for them to make
-            #that pass than someone who is less successful with that type of pass
+            # Weighting the player's xg based off of their success rate for each type of pass (acting as a risk assessment for each pass
+            # since a higher success rate leads to a higher xg)
+            # Since the data from the general dataframe was the xg per pass for each type of pass, all we need to do is weight the xgf
+            # and xga and put them together to find each player's xg per pass for each type of pass.
+            # We then add the xgs for all passses made by each player and average them to find each player's average xg across all passes
+            # The reason we do this is because if a player is generally more successful with one type of pass, it is a better decision for
+            # them to make that pass than someone who is less successful with that type of pass.
             xg += (xgf * complete) - (xga * missed)
-        #count will always be higher than 0 since pass types (id) are only added into pos[name] when an event is that pass type
+        # Count will always be higher than 0 since pass types (id) are only added into pos[name] when an event is that pass type
         return (xg/count)
     else:
         pass
 
+# Sorting each event into its position, and calling gen_sort based on the position.
 def pos_sort(event):
-    #Sorting each event into its position, and calling gen_sort based on the position
     if event['pos'] == 1:
         gen_sort(df_g, event, g)
     elif event['pos'] == 2:
@@ -169,11 +168,12 @@ def pos_sort(event):
     else:
         pass
 
+# Use of percentile instead of other statistical measures explained in paper
 def percentile(expected, df):
     return stats.percentileofscore(df['xg'], expected)
 
+# Finding the player's pass completion rate
 def rate(player):
-    #finding the player's pass completion rate
     if player['total_attempts'] == 0:
         return 0
     else:
@@ -182,7 +182,7 @@ def rate(player):
 def pass_rate_percentile(rate, df):
     return stats.percentileofscore(df['Pass Rate'], rate)
 
-#Building out each position's dataframe using all the above functions
+# Building out each position's dataframe using all the above functions
 train.apply(pos_sort, axis = 1)
 df_g['xg'] = df_g['name'].apply(xg, args = (g,))
 df_g['percentile'] = df_g['xg'].apply(percentile, args = (df_g,))
@@ -240,9 +240,8 @@ df_f['Pass Rate Percentile'] = df_f['Pass Rate'].apply(pass_rate_percentile, arg
 df_f = df_f[df_f['total_attempts'] >= 30]
 df_f = df_f.sort_values(by = ['percentile'], axis = 0, ascending = False)
 
-
+# Finding the general pass completion rate for each player, not just when they are playing in a specific position
 def pass_rate(name):
-    #finding the general pass completion rate for each player, not just when they are playing in a specific position
     gidx = df_g.loc[df_g['name'] == name].index
     if gidx.empty:
         gsuccess = 0
@@ -309,14 +308,14 @@ def pass_rate(name):
 def percentile_pass(rate, df):
     return stats.percentileofscore(df['Pass Rate'], rate)
 
-#Finding each player's pass completion rate and percentile compared to all players in the data, not just their position
+# Finding each player's pass completion rate and percentile compared to all players in the data, not just their position
 total_percentiles = pd.DataFrame(all, columns = ['name', 'rate', 'percentile'])
 all_players = pd.DataFrame(all, columns = ['name', 'rate', 'percentile'])
 all_players = all_players.drop(['rate', 'percentile'], axis = 1)
 all_players['Pass Rate'] = total_percentiles['name'].apply(pass_rate)
 all_players['Percentile'] = all_players['Pass Rate'].apply(percentile_pass, args = (all_players,))
 
-#saving all relevant dataframes to json files
+# Saving all relevant dataframes to json files
 os.remove(r'positions\\all_players.json')
 all_players.to_json(r'positions\\all_players.json')
 

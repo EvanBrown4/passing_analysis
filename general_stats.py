@@ -1,5 +1,3 @@
-#Data from StatsBomb Open Data found at https://github.com/statsbomb/open-data
-
 import pandas as pd
 import os
 from collections import defaultdict as dd
@@ -7,7 +5,7 @@ from scipy import stats
 
 raw_df = pd.read_json(r'passing_data.json')
 
-#building a dataframe for each type of pass
+# Building a dataframe for each type of pass
 idx = []
 for a in range(1,13):
     for b in range(1,5):
@@ -18,17 +16,17 @@ for a in range(1,13):
 
 df = pd.DataFrame(idx, columns = ['id', 'successes', 'total_attempts', 'xga', 'xgf'])
 
+# Finding the data of each individual type of pass
+# For each event, finding the type of pass (event['val']), finding the index of that type of pass in the dataframe,
+# and then adding the data from the event to the dataframe
 def attempts(event):
-    #finding the data of each individual type of pass
-    #for each event, finding the type of pass (event['val']), finding the index of that type of pass in the dataframe,
-    # and then adding the data from the event to the dataframe
     id = event['val']
     index = df.loc[df['id'] == id].index[0]
     successes = df.at[index, 'successes']
     total = df.at[index, 'total_attempts']
     xga = df.at[index, 'xga']
     xgf = df.at[index, 'xgf']
-    #Update a holder variable for the expected goals against and for depending on if the xg is positive (for) or negative (against)
+    # Update a holder variable for the expected goals against and for depending on if the xg is positive (for) or negative (against)
     if event['xg'] < 0:
         goal_a = event['xg'] * -1
         goal_f = 0
@@ -38,11 +36,11 @@ def attempts(event):
     else:
         goal_a = 0
         goal_f = 0
-    #Updates the dataframe with the new data
+    # Updates the dataframe with the new data
     df.at[index, 'successes'] = successes + event['success']
     df.at[index, 'total_attempts'] = total + 1
 
-    #Tracking the count and total xgs to make for easy and efficient averaging
+    # Tracking the count and total xgs to make for easy and efficient averaging
     total_a = xga['total'] + goal_a
     count_a = xga['count'] + 1
     avg_a = total_a / count_a
@@ -59,12 +57,13 @@ def change_tot(goal):
 def change_xg(goal):
     return goal['avg']
 
-#These two functions are not needed for the individual data, as these things are calculated individually and positionally,
-#but they are still usesful to compare different types of passes to each other, so I decided to include them for any possible need
-#later, whether it is to use for another dataframe, to use for a different type of analysis, or to help players with their decision making
+# These two functions are not needed for the individual data, as these things are calculated individually and positionally,
+# but they are still usesful to compare different types of passes to each other, so I decided to include them for any possible need
+# later, whether it is to use for another dataframe, to use for a different type of analysis, or to help players with their decision making
 
+# Finding the expected goals for each event by weighting the xga and xgf based on the completion rate then subtracting them
+# Return the expected goals.
 def expected(event):
-    #finding the expected goals for each event by weighting the xga and xgf based on the completion rate then subtracting them
     if event['total_attempts'] == 0:
         complete = 0
         missed = 0
@@ -78,9 +77,11 @@ def expected(event):
     xga = i_xga
     return xgf - xga
 
+# Use of percentile instead of other statistical measures explained in paper
 def percentile(expected):
     return stats.percentileofscore(df['expected'], expected)
 
+# Add general stats.
 raw_df.apply(attempts, axis = 1)
 df['xga'] = df['xga'].apply(change_xg)
 df['xgf'] = df['xgf'].apply(change_xg)

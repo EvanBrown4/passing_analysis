@@ -15,8 +15,10 @@ To analyze a different player:
 Be sure to open to folder 'source_code' on whatever IED you use to ensure the program works.
 In the individual.py file, just input the player name you would like to analyze and print out the resulting DataFrame. If the function returns None, that means that either the input player is not in the dataset, or their name doesn't match the name in the dataset. Many players have their full names, while some only have first and last. Check the player's position's DataFrame in the positions folder to find their accurate name in the dataset. The function will also save the input player's data as a json file named 'individual_stats.json'.
 
-The data used in this analysis is from StatsBomb Open Data found at https://github.com/statsbomb/open-data. A huge thanks to them for the high quality data that made this possible.
+The data used in this analysis is event data from StatsBomb Open Data found at https://github.com/statsbomb/open-data. A huge thanks to them for the high quality data that made this possible.
 
 If you would like to reproduce any part of this, please credit both StatsBomb (more information on this found at the link above), and myself, Evan Brown.
 
 For any other questions, please feel free to reach out to me at ecb10@rice.edu.
+
+To run, run main.py.

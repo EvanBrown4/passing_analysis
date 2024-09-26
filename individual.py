@@ -1,8 +1,7 @@
-#Data from StatsBomb Open Data found at https://github.com/statsbomb/open-data
-
 import pandas as pd
 import os
 
+# Track the successes of passes using different body parts
 def body(event, body_df):
     body_part = event['body_part']
     if body_part == None:
@@ -11,14 +10,14 @@ def body(event, body_df):
     body_df.at[index, 'successful'] += event['success']
     body_df.at[index, 'attempts'] += 1
 
-
+# Build the full passing decision making stats for a specific player. Save the resulting database to storage.
 def player_stats(player, all):    
     df = pd.read_json('passing_data.json')
     df = df.loc[df['player'] == player]
     if len(df) == 0:
         return None
     else:
-        #checking the average position played by the player and loading in that position's data
+        # Checking the average position played by the player and loading in that position's data
         mode = df.mode()['pos'][0]
         if mode <= 0.5:
             return None
@@ -39,7 +38,7 @@ def player_stats(player, all):
         else:
             pos = pd.read_json(r'positions\\f.json')
         
-        #getting the player's indiviudal stats compared to both their position and all players in the data
+        # Getting the player's indiviudal stats compared to both their position and all players in the data
         index = pos.loc[pos['name'] == player].index[0]
         percentile = pos.at[index, 'percentile']
         xg = pos.at[index, 'xg']
@@ -48,16 +47,16 @@ def player_stats(player, all):
         rate_perc = all.at[all_idx, 'Percentile']
         pos_pass_perc = pos.at[index, 'Pass Rate Percentile']
 
-        #building the dataframe of the player's passing data by pass type, separated by goalkeepers and outfield players
+        # Building the dataframe of the player's passing data by pass type, separated by goalkeepers and outfield players
         if mode == 1:
             body_parts = [('Right Foot', 0, 0), ('Left Foot', 0, 0), ('Head', 0, 0), ('No Touch', 0, 0), ('Other', 0, 0), ('Keeper Arm', 0, 0), ('Drop Kick', 0, 0)]
         else:
             body_parts = [('Right Foot', 0, 0), ('Left Foot', 0, 0), ('Head', 0, 0), ('No Touch', 0, 0), ('Other', 0, 0)]
         body_df = pd.DataFrame(body_parts, columns = ['body_part', 'successful', 'attempts'])
-        #filling out the dataframe just built 
+        # Filling out the dataframe just built 
         df = df.apply(body, axis = 1, args = (body_df,))
 
-        #calculating the completion rate for each pass type and storing it along with the total attempts of that pass type
+        # Calculating the completion rate for each pass type and storing it along with the total attempts of that pass type
         r_attempt = body_df.at[0, 'attempts']
         r_suc = body_df.at[0, 'successful']
         if r_attempt != 0:
@@ -88,8 +87,8 @@ def player_stats(player, all):
             other = ((o_suc / o_attempt) * 100, o_attempt)
         else:
             other = None
-        #ensuring goalkeeper stats are only stored for goalkeepers then
-        #building the final dataframe of player's individual stats from everything found above
+        # Ensuring goalkeeper stats are only stored for goalkeepers then
+        # Building the final dataframe of player's individual stats from everything found above
         if mode == 1:
             k_attempt = body_df.at[5, 'attempts']
             k_suc = body_df.at[5, 'successful']
@@ -109,9 +108,12 @@ def player_stats(player, all):
             player_df = pd.DataFrame(columns = ['Completion Rate', 'Completion Rate Position Percentile', 'Completion Rate Overall Percentile', 'xg', 'percentile', 'right', 'left', 'head', 'no touch', 'other'])
             player_df.loc[0] = [rate*100, pos_pass_perc, rate_perc, xg, percentile, right, left, head, no_touch, other]
         
-        #saving the dataframe as a json
+        # Saving the dataframe as a json
         os.remove(r'individual_stats.json')
         player_df.to_json(r'individual_stats.json')
 
 all_players = pd.read_json(r'positions\\all_players.json')
+
+# Chose to use Krepin Diatta after looking through the positional results and
+# finding a player high on the list whom wouldn't be expected to be there.
 player_stats('Krépin Diatta', all_players)
